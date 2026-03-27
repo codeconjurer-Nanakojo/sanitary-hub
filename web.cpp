@@ -113,6 +113,9 @@ void handleRoot() {
   html += slotCard('B', totalB, stB);
   html += slotCard('C', totalC, stC);
   html += slotCard('D', totalD, stD);
+  html += "</div>";
+  html += "<div style='margin-top:14px'>";
+  html += "<a href='/qr' target='_blank' class='btn' style='display:block;text-align:center;text-decoration:none'>📱 Print Student QR Code</a>";
   html += "</div></div>";
 
   // --- Quick Actions (coil reset — POST forms) ---
