@@ -2,6 +2,7 @@
 #include "hardware.h"
 #include "usage.h"
 #include "storage.h"
+#include "cloud.h"
 
 // ---------------------------------------------------------------
 //  initStudentWeb  —  Register student-facing routes
@@ -256,7 +257,9 @@ void handleStudentDispensePost() {
     html += "<title>" + entityName + " — Result</title>";
     html += "<style>" + String(STUDENT_CSS) + "</style>";
     html += F("</head><body><div class='card'>");
-    html += F("<div class='logo'>") + String(ok ? "✅" : "❌") + F("</div>");
+    html += F("<div class='logo'>");
+    html += ok ? "✅" : "❌";
+    html += F("</div>");
     html += "<h1>" + entityName + "</h1>";
     html += "<p class='subtitle'>" + locationName + "</p>";
     html += "<p class='msg " + String(ok ? "ok" : "err") + "'>" + msg + "</p>";
@@ -273,12 +276,11 @@ void handleStudentDispensePost() {
 
   // --- 2. Check stock for chosen slot ---
   int* stockPtr = nullptr;
-  int  channel  = 0;
   switch (slot[0]) {
-    case 'A': stockPtr = &stA; channel = 0; break;
-    case 'B': stockPtr = &stB; channel = 1; break;
-    case 'C': stockPtr = &stC; channel = 2; break;
-    case 'D': stockPtr = &stD; channel = 3; break;
+    case 'A': stockPtr = &stA; break;
+    case 'B': stockPtr = &stB; break;
+    case 'C': stockPtr = &stC; break;
+    case 'D': stockPtr = &stD; break;
   }
   if (*stockPtr <= 0) {
     resultPage(false, "Slot " + slot + " is empty.<br>Please choose another slot.");
@@ -286,18 +288,15 @@ void handleStudentDispensePost() {
   }
 
   // --- 3. Enforce daily/monthly limits ---
-  UsageResult ur = checkAndUpdateUsage(sid);
-  if (ur == USAGE_DAILY_EXCEEDED) {
-    resultPage(false, "Daily limit reached.<br>Come back tomorrow. 💛");
-    return;
-  }
-  if (ur == USAGE_MONTHLY_EXCEEDED) {
-    resultPage(false, "Monthly limit reached.<br>You're all set for this month. 💛");
+  int dUse = 0;
+  int mUse = 0;
+  if (!checkAndUpdateUsage(sid, dUse, mUse)) {
+    resultPage(false, "Usage limit reached.<br>Come back later. 💛");
     return;
   }
 
   // --- 4. Dispense ---
-  dispenseSlot(channel);   // drives PCA9685 coil
+  dispenseAction(slot[0]);
   (*stockPtr)--;
   saveStock();
 
@@ -311,16 +310,18 @@ void handleStudentDispensePost() {
   saveSlotTotals();
 
   // --- 6. Log to history + cloud ---
-  logHistory(sid, slot[0]);
-  sendToSupabase(sid, slot[0]);
+  logActivity(sid, dUse, mUse);
+  sendToSupabase(sid, dUse, mUse);
 
   // --- 7. LCD feedback ---
-  lcdMessage("Dispensing...", "Slot " + slot + " 🌸");
+  String line2 = "Slot " + slot + " dispensed";
+  lcdMessage("Dispensing...", line2.c_str());
 
   // --- 8. Low-stock LCD warning ---
   if (*stockPtr <= LOW_STOCK_THRESHOLD && *stockPtr > 0) {
     delay(2000);
-    lcdMessage("Low Stock!", "Slot " + slot + ": " + String(*stockPtr) + " left");
+    String lowStockLine = "Slot " + slot + ": " + String(*stockPtr) + " left";
+    lcdMessage("Low Stock!", lowStockLine.c_str());
   }
 
   resultPage(true, "🌸 Pad dispensed from Slot " + slot + "!<br><span style='font-size:0.85rem;font-weight:400;color:#6b7280'>Take your pad from the tray.</span>");

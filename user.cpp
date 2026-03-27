@@ -3,6 +3,7 @@
 #include "storage.h"
 #include "usage.h"
 #include "cloud.h"
+#include "fingerprint.h"
 #include <Keypad.h>
 
 // ---------------------------------------------------------------
@@ -59,7 +60,16 @@ void handleKeypad() {
   switch (hubState) {
     case WAITING_ID:
       if (key == '#') {
-        handleIDInput();
+        if (isEnrolling) {
+          // In enrollment mode: transition from ID entry to fingerprint capture
+          enrollmentStep = 1;
+          lcd.clear();
+          lcd.print("ID: " + currentID);
+          lcd.setCursor(0, 1);
+          lcd.print("Place Finger");
+        } else {
+          handleIDInput();
+        }
       } else {
         currentID += key;
         lcd.setCursor(0, 0);
@@ -67,6 +77,11 @@ void handleKeypad() {
         lcd.setCursor(0, 1);
         lcd.print("ID: " + currentID + "  ");
       }
+      break;
+
+    case WAITING_FINGER:
+      // During fingerprint verification, keypad is idle
+      // Fingerprint checking is done in checkFingerprint()
       break;
 
     case CHOOSING_PRODUCT:
@@ -80,6 +95,9 @@ void handleKeypad() {
 // ---------------------------------------------------------------
 //  handleIDInput
 //  Triggered when the user presses '#' to confirm their ID.
+//  Checks for stored fingerprint and transitions to either
+//  WAITING_FINGER (for verification) or displays enrollment prompt
+//  for new users.
 // ---------------------------------------------------------------
 void handleIDInput() {
   lcdMessage("Verifying...");
@@ -93,9 +111,22 @@ void handleIDInput() {
   }
 
   if (verifyUser(currentID)) {
-    hubState = CHOOSING_PRODUCT;
-    productSelectTime = millis();   // Start idle timer
-    lcdMessage("ID Verified!", "Select: A B C D");
+    // User ID is valid — check for fingerprint
+    validatedFingerID = getStoredFingerprintID(currentID);
+
+    if (validatedFingerID == -1) {
+      // New user — no fingerprint yet
+      lcdMessage("ID OK. New User", "Enrolling...");
+      delay(1500);
+      // Don't auto-start enrollment; wait for web trigger
+      lcdReady();
+      currentID = "";
+    } else {
+      // Existing user — require fingerprint verification
+      hubState = WAITING_FINGER;
+      fingerTries = 0;
+      lcdMessage("ID Verified", "Place Finger");
+    }
   } else {
     lcdMessage("Access Denied", "Check your ID");
     delay(2000);

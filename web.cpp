@@ -1,6 +1,7 @@
 #include "web.h"
 #include "hardware.h"
 #include "storage.h"
+#include "fingerprint.h"
 
 // ---------------------------------------------------------------
 //  initWebServer
@@ -8,10 +9,12 @@
 void initWebServer() {
   server.on("/",                HTTP_GET,  handleRoot);
   server.on("/updateSettings",  HTTP_POST, handleUpdateSettings);
-  server.on("/changePassword",  HTTP_POST, handleChangePassword);  // Fix 1
+  server.on("/changePassword",  HTTP_POST, handleChangePassword);
   server.on("/factoryReset",    HTTP_POST, handleFactoryReset);
   server.on("/executeReset",    HTTP_POST, handleExecuteReset);
   server.on("/remoteReset",     HTTP_GET,  handleRemoteReset);
+  server.on("/remoteEnroll",    HTTP_GET,  handleRemoteEnroll);    // Fingerprint enrollment
+  server.on("/debugFile",       HTTP_GET,  handleDebugFile);        // File preview
   server.on("/upload", HTTP_POST,
     []() { server.send(200, "text/html", "<h3>Uploaded!</h3><a href='/'>Back</a>"); },
     handleFileUpload
@@ -306,6 +309,7 @@ void handleUpdateSettings() {
 // ---------------------------------------------------------------
 //  handleFactoryReset
 //  FIX 1: checks against adminPassword (NVS)
+//  Clears all data including fingerprint mappings and database
 // ---------------------------------------------------------------
 void handleFactoryReset() {
   if (!server.hasArg("pass") || server.arg("pass") != adminPassword) {
@@ -317,6 +321,7 @@ void handleFactoryReset() {
   SPIFFS.remove("/history.txt");
   ledger.begin("usage",  false); ledger.clear();  ledger.end();
   settings.begin("config", false); settings.clear(); settings.end();
+  clearFingerprintMap();
   server.send(200, "text/plain", "System wiped. Rebooting in 2 seconds...");
   delay(2000);
   ESP.restart();
@@ -361,4 +366,48 @@ void handleFileUpload() {
       SPIFFS.remove("/temp.csv");
     }
   }
+}
+
+// ---------------------------------------------------------------
+//  handleRemoteEnroll
+//  Triggered from web dashboard to start fingerprint enrollment
+// ---------------------------------------------------------------
+void handleRemoteEnroll() {
+  startRemoteEnrollment();
+  server.send(200, "text/html", 
+    "<h3>Enrollment Mode Activated</h3>"
+    "<p>Enter Student ID on the keypad followed by #.</p>"
+    "<p>Then place your finger on the sensor twice.</p>"
+    "<a href='/'>Back to Dashboard</a>"
+  );
+}
+
+// ---------------------------------------------------------------
+//  handleDebugFile
+//  Preview SPIFFS file contents (first 5 lines)
+//  Usage: /debugFile?path=/master.csv
+// ---------------------------------------------------------------
+void handleDebugFile() {
+  if (!server.hasArg("path")) {
+    server.send(400, "text/plain", "Missing path argument (e.g., /debugFile?path=/master.csv)");
+    return;
+  }
+
+  String path = server.arg("path");
+  if (!SPIFFS.exists(path)) {
+    server.send(404, "text/plain", "File not found: " + path);
+    return;
+  }
+
+  File f = SPIFFS.open(path, "r");
+  String output = "--- Preview of " + path + " ---\n";
+  int lineCount = 0;
+
+  while (f.available() && lineCount < 5) {
+    output += f.readStringUntil('\n') + "\n";
+    lineCount++;
+  }
+  f.close();
+
+  server.send(200, "text/plain", output);
 }

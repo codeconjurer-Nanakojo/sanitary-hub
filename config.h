@@ -36,7 +36,7 @@
 //  PCA9685 SERVO DRIVER
 // =============================================================
 #define SERVO_FREQ      50
-#define STOP_PULSE      353
+#define STOP_PULSE      360
 #define CW_PULSE        300
 #define CCW_PULSE       400
 
@@ -82,9 +82,16 @@ struct Activity {
 };
 
 // =============================================================
+//  FINGERPRINT SENSOR
+// =============================================================
+#define FINGER_RX               5   // Hardware Serial(2) RX
+#define FINGER_TX              18   // Hardware Serial(2) TX
+#define FINGERPRINT_ENROLL_TIMEOUT  60000UL  // 60 seconds
+
+// =============================================================
 //  MACHINE STATE
 // =============================================================
-enum MachineState { WAITING_ID, CHOOSING_PRODUCT };
+enum MachineState { WAITING_ID, WAITING_FINGER, CHOOSING_PRODUCT };
 
 // =============================================================
 //  GLOBALLY SHARED OBJECTS  (defined in SanitaryHub.ino)
@@ -114,3 +121,12 @@ extern unsigned long lastKeyPressTime;
 extern unsigned long productSelectTime;
 extern int          webResetChannel;
 extern bool         otaActive;        // Fix 2: true while OTA is running
+
+// =============================================================
+//  FINGERPRINT GLOBALS  (defined in SanitaryHub.ino)
+// =============================================================
+extern bool    isEnrolling;
+extern int     enrollmentStep;
+extern unsigned long enrollmentTimer;
+extern int     validatedFingerID;
+extern int     fingerTries;

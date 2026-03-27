@@ -179,3 +179,15 @@ void loadHistory() {
   }
   f.close();
 }
+
+// ---------------------------------------------------------------
+//  clearFingerprintMap
+//  Wipes all stored fingerprint-to-ID mappings during factory reset
+// ---------------------------------------------------------------
+void clearFingerprintMap() {
+  Preferences fp;
+  fp.begin("fingers", false);
+  fp.clear();
+  fp.end();
+  Serial.println("Fingerprint map cleared.");
+}
