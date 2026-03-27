@@ -125,6 +125,7 @@ void handleIDInput() {
       // Existing user — require fingerprint verification
       hubState = WAITING_FINGER;
       fingerTries = 0;
+      productSelectTime = millis();
       lcdMessage("ID Verified", "Place Finger");
     }
   } else {

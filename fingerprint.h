@@ -20,3 +20,6 @@ int getStoredFingerprintID(String studentID);
 
 // Helper: save mapping between student ID and fingerprint slot
 void saveFingerprint(String studentID, int fingerprintSlot);
+
+// Helper: remove mapping for one student ID (and delete template when possible)
+bool resetFingerprintForID(String studentID, bool removeTemplate = true);

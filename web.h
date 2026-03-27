@@ -9,6 +9,8 @@ void handleFactoryReset();
 void handleRemoteReset();
 void handleExecuteReset();
 void handleExecuteDispense();
+void handleResetUser();
+void handleResetUserFingerprint();
 void handleFileUpload();
 void handleRemoteEnroll();      // Fingerprint enrollment trigger
 void handleDebugFile();         // Debug file preview

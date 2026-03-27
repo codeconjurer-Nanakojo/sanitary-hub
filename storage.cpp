@@ -119,6 +119,26 @@ String getTimestamp() {
 }
 
 // ---------------------------------------------------------------
+//  resetUserUsage
+//  Clears only one user's usage counters in NVS ledger.
+// ---------------------------------------------------------------
+bool resetUserUsage(String id) {
+  id.trim();
+  if (id.length() == 0) return false;
+
+  ledger.begin("usage", false);
+  bool changed = false;
+
+  changed |= ledger.remove((id + "_d").c_str());
+  changed |= ledger.remove((id + "_dc").c_str());
+  changed |= ledger.remove((id + "_m_date").c_str());
+  changed |= ledger.remove((id + "_mc").c_str());
+
+  ledger.end();
+  return changed;
+}
+
+// ---------------------------------------------------------------
 //  logActivity
 //  Pushes a new record to the front of the in-memory history
 //  ring buffer, then persists it.

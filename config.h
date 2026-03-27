@@ -68,7 +68,7 @@
 //  If a user enters their ID but doesn't pick a product within
 //  this many milliseconds, the machine resets to WAITING_ID.
 // =============================================================
-#define IDLE_TIMEOUT_MS 30000UL   // 30 seconds
+#define IDLE_TIMEOUT_MS 60000UL   // 30 seconds
 
 // =============================================================
 //  ACTIVITY RECORD STRUCT

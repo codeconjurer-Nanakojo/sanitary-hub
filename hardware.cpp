@@ -39,7 +39,7 @@ void dispenseAction(char choice) {
              (choice == 'C') ? CHAN_C : CHAN_D;
 
   driver.setChannelPWM(chan, CW_PULSE);
-  delay((570 / 90.0) * TIME_PER_90_DEG);
+  delay(4 * TIME_PER_90_DEG); // Rotate for 4 = 360 degrees
   driver.setChannelPWM(chan, STOP_PULSE);
 }
 

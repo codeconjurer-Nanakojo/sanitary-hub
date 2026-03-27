@@ -15,6 +15,7 @@ void loadHistory();
 void saveHistory();
 void logActivity(String id, int d, int m);
 String getTimestamp();
+bool resetUserUsage(String id);
 
 // Fingerprint map persistence
 void clearFingerprintMap();

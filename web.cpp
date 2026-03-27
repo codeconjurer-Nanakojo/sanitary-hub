@@ -14,6 +14,8 @@ void initWebServer() {
   server.on("/factoryReset",    HTTP_POST, handleFactoryReset);
   server.on("/executeReset",    HTTP_POST, handleExecuteReset);
   server.on("/executeDispense", HTTP_POST, handleExecuteDispense);
+  server.on("/resetUser",       HTTP_POST, handleResetUser);
+  server.on("/resetUserFingerprint", HTTP_POST, handleResetUserFingerprint);
   server.on("/remoteReset",     HTTP_GET,  handleRemoteReset);
   server.on("/remoteEnroll",    HTTP_POST, handleRemoteEnroll);    // Fingerprint enrollment (password-protected)
   server.on("/debugFile",       HTTP_GET,  handleDebugFile);        // File preview
@@ -154,6 +156,25 @@ void handleRoot() {
   html += "</div><br>";
   html += "<input type='submit' class='btn btn-reset' style='width:100%' value='🔧 Reset Selected Channel'>";
   html += "</form></div>";
+
+  html += "<div class='card'><h3>👤 Reset Single User</h3>";
+  html += "<form action='/resetUser' method='POST'>";
+  html += "<div class='inline-inputs'>";
+  html += "<div class='form-group'><label>Student ID</label><input type='text' name='sid' placeholder='e.g. STU042' required></div>";
+  html += "<div class='form-group'><label>Admin Password</label><input type='password' name='pass' required></div>";
+  html += "</div>";
+  html += "<input type='submit' class='btn btn-reset' style='width:100%' value='Reset This User Usage'>";
+  html += "</form>";
+  html += "<p style='font-size:0.82rem;color:#6b7280;margin-top:10px'>This clears only this user's daily/monthly counters. Enrollment data is not removed.</p>";
+
+  html += "<form action='/resetUserFingerprint' method='POST' style='margin-top:12px'>";
+  html += "<div class='inline-inputs'>";
+  html += "<div class='form-group'><label>Student ID</label><input type='text' name='sid' placeholder='e.g. STU042' required></div>";
+  html += "<div class='form-group'><label>Admin Password</label><input type='password' name='pass' required></div>";
+  html += "</div>";
+  html += "<input type='submit' class='btn btn-danger' style='width:100%' value='Reset This User Fingerprint'>";
+  html += "</form>";
+  html += "<p style='font-size:0.82rem;color:#6b7280;margin-top:10px'>Removes this user's fingerprint mapping and attempts to delete the template from the sensor.</p></div>";
 
   // --- Activity Log ---
   html += "<div class='card'><h3>📋 Recent Activity (Last " + String(HISTORY_SIZE) + ")</h3>";
@@ -323,6 +344,64 @@ void handleExecuteDispense() {
 
   webDispenseChannel = ch;
   String html = "<h3>✅ Admin dispense queued for Slot " + String((char)('A' + ch)) + "</h3>";
+  html += "<a href='/'>Back to Dashboard</a>";
+  server.send(200, "text/html", html);
+}
+
+// ---------------------------------------------------------------
+//  handleResetUser  —  Resets one user's usage counters (POST)
+// ---------------------------------------------------------------
+void handleResetUser() {
+  if (!server.hasArg("pass") || server.arg("pass") != adminPassword) {
+    server.send(403, "text/plain", "Invalid password");
+    return;
+  }
+  if (!server.hasArg("sid")) {
+    server.send(400, "text/plain", "Missing student ID");
+    return;
+  }
+
+  String sid = server.arg("sid");
+  sid.trim();
+  if (sid.length() == 0) {
+    server.send(400, "text/plain", "Invalid student ID");
+    return;
+  }
+
+  bool changed = resetUserUsage(sid);
+  String html = "<h3>✅ User reset processed for: " + sid + "</h3>";
+  html += changed
+          ? "<p>Usage counters were cleared.</p>"
+          : "<p>No usage counters were found for this user.</p>";
+  html += "<a href='/'>Back to Dashboard</a>";
+  server.send(200, "text/html", html);
+}
+
+// ---------------------------------------------------------------
+//  handleResetUserFingerprint  —  Resets one user's fingerprint
+// ---------------------------------------------------------------
+void handleResetUserFingerprint() {
+  if (!server.hasArg("pass") || server.arg("pass") != adminPassword) {
+    server.send(403, "text/plain", "Invalid password");
+    return;
+  }
+  if (!server.hasArg("sid")) {
+    server.send(400, "text/plain", "Missing student ID");
+    return;
+  }
+
+  String sid = server.arg("sid");
+  sid.trim();
+  if (sid.length() == 0) {
+    server.send(400, "text/plain", "Invalid student ID");
+    return;
+  }
+
+  bool changed = resetFingerprintForID(sid, true);
+  String html = "<h3>✅ Fingerprint reset processed for: " + sid + "</h3>";
+  html += changed
+          ? "<p>Mapping removed. Sensor template delete attempted.</p>"
+          : "<p>No fingerprint mapping was found for this user.</p>";
   html += "<a href='/'>Back to Dashboard</a>";
   server.send(200, "text/html", html);
 }

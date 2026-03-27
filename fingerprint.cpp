@@ -60,6 +60,34 @@ void saveFingerprint(String studentID, int fingerprintSlot) {
 }
 
 // ---------------------------------------------------------------
+//  resetFingerprintForID
+//  Removes studentID->fingerprint mapping and optionally deletes
+//  the template from the fingerprint sensor database.
+// ---------------------------------------------------------------
+bool resetFingerprintForID(String studentID, bool removeTemplate) {
+  studentID.trim();
+  if (studentID.length() == 0) return false;
+
+  int fpID = getStoredFingerprintID(studentID);
+  if (fpID < 0) return false;
+
+  fingerMap.begin("fingers", false);
+  bool removed = fingerMap.remove(studentID.c_str());
+  fingerMap.end();
+
+  if (removed && removeTemplate) {
+    int delResult = fingerprintSensor.deleteModel(fpID);
+    if (delResult == FINGERPRINT_OK) {
+      Serial.printf("Deleted fingerprint template slot %d for ID=%s\n", fpID, studentID.c_str());
+    } else {
+      Serial.printf("Template delete failed for slot %d (code %d)\n", fpID, delResult);
+    }
+  }
+
+  return removed;
+}
+
+// ---------------------------------------------------------------
 //  enrollmentSequence
 //  Multi-stage fingerprint capture and enrollment.
 //  Called every loop() when isEnrolling=true
@@ -143,6 +171,7 @@ void checkFingerprint() {
   // Check if the matched fingerprint matches the user's stored ID
   if (p == FINGERPRINT_OK && fingerprintSensor.fingerID == validatedFingerID) {
     lcdMessage("Match! Select:", "A, B, C, or D");
+    productSelectTime = millis();
     hubState = CHOOSING_PRODUCT;
     Serial.println("Fingerprint match!");
   } else {
