@@ -22,10 +22,23 @@ These values are persisted in NVS and reused after reboot.
 
 ### Start fingerprint enrollment
 
-1. Click `Start Fingerprint Enrollment` on dashboard.
-2. On keypad, enter Student ID and press `#`.
-3. Place finger, remove, place same finger again.
-4. Success message confirms slot save.
+1. Enter current admin password in the enrollment form.
+2. Click `Start Fingerprint Enrollment`.
+3. On keypad, enter Student ID and press `#`.
+4. Place finger, remove, place same finger again.
+5. Success message confirms slot save.
+
+### Admin debug controls
+
+- `Admin Debug Dispense` allows manual dispense from Slot `A-D` for testing.
+- `Unjam / Reset Coil` allows manual reset of Channel `A-D`.
+- Both actions require current admin password.
+
+### Device-specific settings behavior
+
+- Settings are local to each ESP32 board (stored in that board's NVS).
+- Updating `Entity Name` or `Location` changes only the currently connected unit.
+- In AP mode, devices may share `192.168.4.1`, but each AP is a separate network.
 
 ## Student Dispense Paths
 

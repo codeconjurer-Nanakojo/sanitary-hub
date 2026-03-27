@@ -13,6 +13,7 @@ void initWebServer() {
   server.on("/changePassword",  HTTP_POST, handleChangePassword);
   server.on("/factoryReset",    HTTP_POST, handleFactoryReset);
   server.on("/executeReset",    HTTP_POST, handleExecuteReset);
+  server.on("/executeDispense", HTTP_POST, handleExecuteDispense);
   server.on("/remoteReset",     HTTP_GET,  handleRemoteReset);
   server.on("/remoteEnroll",    HTTP_POST, handleRemoteEnroll);    // Fingerprint enrollment (password-protected)
   server.on("/debugFile",       HTTP_GET,  handleDebugFile);        // File preview
@@ -136,16 +137,23 @@ void handleRoot() {
   html += "<input type='submit' class='btn' style='width:100%' value='➕ Start Fingerprint Enrollment'>";
   html += "</form>";
   html += "<p style='font-size:0.82rem;color:#6b7280;margin-bottom:12px'>After start, enter Student ID on keypad and press #, then place finger twice.</p>";
-  html += "<label style='margin-bottom:10px;display:block;'>Unjam / Reset Coils:</label>";
-  html += "<div class='grid-btns'>";
-  for (int i = 0; i < 4; i++) {
-    char lbl = 'A' + i;
-    html += "<form action='/executeReset' method='POST' style='margin:0'>";
-    html += "<input type='hidden' name='ch' value='" + String(i) + "'>";
-    html += "<input type='submit' class='btn btn-reset' value='Reset " + String(lbl) + "'>";
-    html += "</form>";
-  }
-  html += "</div></div>";
+  html += "<form action='/executeDispense' method='POST' style='margin-bottom:12px;border:1px solid #fce7f3;border-radius:12px;padding:10px'>";
+  html += "<label style='margin-bottom:8px;display:block;'>Admin Debug Dispense</label>";
+  html += "<div class='inline-inputs'>";
+  html += "<div><label>Slot</label><select name='ch' style='width:100%;padding:10px;border-radius:8px;border:1px solid #fbcfe8'><option value='0'>A</option><option value='1'>B</option><option value='2'>C</option><option value='3'>D</option></select></div>";
+  html += "<div><label>Password</label><input type='password' name='pass' required></div>";
+  html += "</div><br>";
+  html += "<input type='submit' class='btn' style='width:100%' value='🧪 Dispense Selected Slot'>";
+  html += "</form>";
+
+  html += "<form action='/executeReset' method='POST' style='border:1px solid #fce7f3;border-radius:12px;padding:10px'>";
+  html += "<label style='margin-bottom:8px;display:block;'>Unjam / Reset Coil</label>";
+  html += "<div class='inline-inputs'>";
+  html += "<div><label>Channel</label><select name='ch' style='width:100%;padding:10px;border-radius:8px;border:1px solid #fbcfe8'><option value='0'>A</option><option value='1'>B</option><option value='2'>C</option><option value='3'>D</option></select></div>";
+  html += "<div><label>Password</label><input type='password' name='pass' required></div>";
+  html += "</div><br>";
+  html += "<input type='submit' class='btn btn-reset' style='width:100%' value='🔧 Reset Selected Channel'>";
+  html += "</form></div>";
 
   // --- Activity Log ---
   html += "<div class='card'><h3>📋 Recent Activity (Last " + String(HISTORY_SIZE) + ")</h3>";
@@ -262,6 +270,8 @@ void handleRemoteReset() {
   html += "<option value='0'>A</option><option value='1'>B</option>";
   html += "<option value='2'>C</option><option value='3'>D</option>";
   html += "</select><br><br>";
+  html += "<label>Admin Password:</label><br>";
+  html += "<input type='password' name='pass' required><br><br>";
   html += "<input type='submit' value='Confirm Reset' style='padding:10px 20px;background:#f472b6;border:none;border-radius:8px;color:white;cursor:pointer'>";
   html += "</form><br><a href='/'>Cancel</a></body></html>";
   server.send(200, "text/html", html);
@@ -271,6 +281,11 @@ void handleRemoteReset() {
 //  handleExecuteReset  —  Queues coil reset (POST only)
 // ---------------------------------------------------------------
 void handleExecuteReset() {
+  if (!server.hasArg("pass") || server.arg("pass") != adminPassword) {
+    server.send(403, "text/plain", "Invalid password");
+    return;
+  }
+
   if (!server.hasArg("ch")) {
     server.send(400, "text/plain", "Missing channel parameter");
     return;
@@ -282,6 +297,32 @@ void handleExecuteReset() {
   }
   webResetChannel = ch;
   String html = "<h3>✅ Reset queued for Channel " + String((char)('A' + ch)) + "</h3>";
+  html += "<a href='/'>Back to Dashboard</a>";
+  server.send(200, "text/html", html);
+}
+
+// ---------------------------------------------------------------
+//  handleExecuteDispense  —  Queues admin debug dispense (POST)
+// ---------------------------------------------------------------
+void handleExecuteDispense() {
+  if (!server.hasArg("pass") || server.arg("pass") != adminPassword) {
+    server.send(403, "text/plain", "Invalid password");
+    return;
+  }
+
+  if (!server.hasArg("ch")) {
+    server.send(400, "text/plain", "Missing slot parameter");
+    return;
+  }
+
+  int ch = server.arg("ch").toInt();
+  if (ch < 0 || ch > 3) {
+    server.send(400, "text/plain", "Invalid slot (must be 0-3)");
+    return;
+  }
+
+  webDispenseChannel = ch;
+  String html = "<h3>✅ Admin dispense queued for Slot " + String((char)('A' + ch)) + "</h3>";
   html += "<a href='/'>Back to Dashboard</a>";
   server.send(200, "text/html", html);
 }

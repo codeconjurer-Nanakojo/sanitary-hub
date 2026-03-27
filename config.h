@@ -120,6 +120,7 @@ extern String       currentID;
 extern unsigned long lastKeyPressTime;
 extern unsigned long productSelectTime;
 extern int          webResetChannel;
+extern int          webDispenseChannel;
 extern bool         otaActive;        // Fix 2: true while OTA is running
 
 // =============================================================

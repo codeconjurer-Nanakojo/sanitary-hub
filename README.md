@@ -8,7 +8,9 @@ ESP32-based smart sanitary pad vending machine firmware with keypad + fingerprin
 - Dual access flow:
 	- Keypad flow on device
 	- QR/web flow from phone (`/dispense`)
-- Fingerprint enrollment from admin dashboard (`/remoteEnroll`)
+- Fingerprint enrollment from admin dashboard (`POST /remoteEnroll`) with admin password validation
+- Admin quick actions are password-protected (`POST /executeReset`, `POST /executeDispense`)
+- Admin debug dispense tool for manual slot testing (A/B/C/D)
 - Fingerprint verification required before dispense
 	- Keypad flow: ID -> fingerprint -> slot selection
 	- QR/web flow: ID + slot from phone -> fingerprint on machine -> dispense
@@ -45,7 +47,7 @@ ESP32-based smart sanitary pad vending machine firmware with keypad + fingerprin
 
 ## Enrollment And Dispense Flow
 
-1. Admin clicks `Start Fingerprint Enrollment` in dashboard.
+1. Admin enters current password and clicks `Start Fingerprint Enrollment` in dashboard.
 2. User enters Student ID on keypad and presses `#`.
 3. User scans same finger twice.
 4. Mapping `studentID -> fingerprintSlot` is saved in NVS (`fingers`).
@@ -61,4 +63,8 @@ QR/web dispense flow:
 ## Notes
 
 - If a student has no enrolled fingerprint, web dispense is rejected until enrollment is completed.
+- Admin manual reset and admin debug dispense both require current admin password.
+- Each ESP32 stores its own settings (`entityName`, `locationName`, limits, password) in its own flash/NVS.
+- Dashboard changes apply only to the unit whose AP/web server you are currently connected to.
+- Multiple devices can all use `192.168.4.1` in AP mode because each one is on its own hotspot network.
 - The warning about `LiquidCrystal_I2C` architecture can be non-fatal, but use an ESP32-compatible library build if LCD issues appear.

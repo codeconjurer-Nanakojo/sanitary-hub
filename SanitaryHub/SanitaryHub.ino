@@ -54,6 +54,7 @@ String       currentID          = "";
 unsigned long lastKeyPressTime  = 0;
 unsigned long productSelectTime = 0;
 int          webResetChannel    = -1;
+int          webDispenseChannel = -1;
 bool         otaActive          = false;
 
 bool           isEnrolling       = false;
@@ -131,6 +132,28 @@ void loop() {
     char label = 'A' + webResetChannel;
     performReset(webResetChannel, label);
     webResetChannel = -1;
+  }
+
+  if (webDispenseChannel != -1) {
+    char slot = 'A' + webDispenseChannel;
+    int* stockPtr = (slot == 'A') ? &stA :
+                    (slot == 'B') ? &stB :
+                    (slot == 'C') ? &stC : &stD;
+
+    if (*stockPtr > 0) {
+      dispenseAction(slot);
+      (*stockPtr)--;
+      incrementSlotTotal(slot);
+      saveStock();
+      lcdMessage("Admin Dispense", ("Slot " + String(slot)).c_str());
+      delay(1000);
+    } else {
+      lcdMessage("Slot Empty", ("Slot " + String(slot)).c_str());
+      delay(1000);
+    }
+
+    lcdReady();
+    webDispenseChannel = -1;
   }
 
   handleKeypad();
