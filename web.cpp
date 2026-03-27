@@ -14,7 +14,7 @@ void initWebServer() {
   server.on("/factoryReset",    HTTP_POST, handleFactoryReset);
   server.on("/executeReset",    HTTP_POST, handleExecuteReset);
   server.on("/remoteReset",     HTTP_GET,  handleRemoteReset);
-  server.on("/remoteEnroll",    HTTP_GET,  handleRemoteEnroll);    // Fingerprint enrollment
+  server.on("/remoteEnroll",    HTTP_POST, handleRemoteEnroll);    // Fingerprint enrollment (password-protected)
   server.on("/debugFile",       HTTP_GET,  handleDebugFile);        // File preview
   server.on("/upload", HTTP_POST,
     []() { server.send(200, "text/html", "<h3>Uploaded!</h3><a href='/'>Back</a>"); },
@@ -128,8 +128,14 @@ void handleRoot() {
 
   // --- Quick Actions (coil reset — POST forms) ---
   html += "<div class='card'><h3>⚡ Quick Actions</h3>";
-  html += "<a href='/remoteEnroll' class='btn' style='display:block;text-align:center;text-decoration:none;margin-bottom:12px'>➕ Start Fingerprint Enrollment</a>";
-  html += "<p style='font-size:0.82rem;color:#6b7280;margin-bottom:12px'>After clicking, enter Student ID on keypad and press #, then place finger twice.</p>";
+  html += "<form action='/remoteEnroll' method='POST' style='margin-bottom:12px'>";
+  html += "<div class='form-group' style='margin-bottom:10px'>";
+  html += "<label>Admin Password (required for enrollment)</label>";
+  html += "<input type='password' name='pass' required>";
+  html += "</div>";
+  html += "<input type='submit' class='btn' style='width:100%' value='➕ Start Fingerprint Enrollment'>";
+  html += "</form>";
+  html += "<p style='font-size:0.82rem;color:#6b7280;margin-bottom:12px'>After start, enter Student ID on keypad and press #, then place finger twice.</p>";
   html += "<label style='margin-bottom:10px;display:block;'>Unjam / Reset Coils:</label>";
   html += "<div class='grid-btns'>";
   for (int i = 0; i < 4; i++) {
@@ -380,6 +386,11 @@ void handleFileUpload() {
 //  Triggered from web dashboard to start fingerprint enrollment
 // ---------------------------------------------------------------
 void handleRemoteEnroll() {
+  if (!server.hasArg("pass") || server.arg("pass") != adminPassword) {
+    server.send(403, "text/html", "<h3>Invalid password for enrollment.</h3><a href='/'>Back to Dashboard</a>");
+    return;
+  }
+
   startRemoteEnrollment();
   server.send(200, "text/html", 
     "<h3>Enrollment Mode Activated</h3>"
