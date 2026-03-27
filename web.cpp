@@ -2,6 +2,7 @@
 #include "hardware.h"
 #include "storage.h"
 #include "fingerprint.h"
+#include "studentweb.h"
 
 // ---------------------------------------------------------------
 //  initWebServer
@@ -19,6 +20,10 @@ void initWebServer() {
     []() { server.send(200, "text/html", "<h3>Uploaded!</h3><a href='/'>Back</a>"); },
     handleFileUpload
   );
+
+  // Register public student endpoints (/dispense and /qr).
+  initStudentWeb();
+
   server.begin();
 }
 
@@ -123,6 +128,8 @@ void handleRoot() {
 
   // --- Quick Actions (coil reset — POST forms) ---
   html += "<div class='card'><h3>⚡ Quick Actions</h3>";
+  html += "<a href='/remoteEnroll' class='btn' style='display:block;text-align:center;text-decoration:none;margin-bottom:12px'>➕ Start Fingerprint Enrollment</a>";
+  html += "<p style='font-size:0.82rem;color:#6b7280;margin-bottom:12px'>After clicking, enter Student ID on keypad and press #, then place finger twice.</p>";
   html += "<label style='margin-bottom:10px;display:block;'>Unjam / Reset Coils:</label>";
   html += "<div class='grid-btns'>";
   for (int i = 0; i < 4; i++) {

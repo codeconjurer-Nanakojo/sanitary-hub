@@ -13,6 +13,7 @@ void finishEnrollment(bool success);
 
 // Public verification function
 void checkFingerprint();
+bool verifyFingerprintForID(String studentID, unsigned long timeoutMs = 15000UL);
 
 // Helper: retrieve fingerprint ID for a given student ID
 int getStoredFingerprintID(String studentID);

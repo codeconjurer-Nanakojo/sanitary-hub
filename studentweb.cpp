@@ -3,6 +3,7 @@
 #include "usage.h"
 #include "storage.h"
 #include "cloud.h"
+#include "fingerprint.h"
 
 // ---------------------------------------------------------------
 //  initStudentWeb  —  Register student-facing routes
@@ -274,6 +275,12 @@ void handleStudentDispensePost() {
     return;
   }
 
+  // --- 1b. Require enrolled fingerprint for QR/web dispense ---
+  if (getStoredFingerprintID(sid) < 0) {
+    resultPage(false, "Fingerprint not enrolled for this ID.<br>Ask admin to enroll first.");
+    return;
+  }
+
   // --- 2. Check stock for chosen slot ---
   int* stockPtr = nullptr;
   switch (slot[0]) {
@@ -295,12 +302,18 @@ void handleStudentDispensePost() {
     return;
   }
 
-  // --- 4. Dispense ---
+  // --- 4. Fingerprint check at machine before dispense ---
+  if (!verifyFingerprintForID(sid)) {
+    resultPage(false, "Fingerprint verification failed or timed out.<br>Please try again at the machine.");
+    return;
+  }
+
+  // --- 5. Dispense ---
   dispenseAction(slot[0]);
   (*stockPtr)--;
   saveStock();
 
-  // --- 5. Update cumulative totals ---
+  // --- 6. Update cumulative totals ---
   switch (slot[0]) {
     case 'A': totalA++; break;
     case 'B': totalB++; break;
@@ -309,15 +322,15 @@ void handleStudentDispensePost() {
   }
   saveSlotTotals();
 
-  // --- 6. Log to history + cloud ---
+  // --- 7. Log to history + cloud ---
   logActivity(sid, dUse, mUse);
   sendToSupabase(sid, dUse, mUse);
 
-  // --- 7. LCD feedback ---
+  // --- 8. LCD feedback ---
   String line2 = "Slot " + slot + " dispensed";
   lcdMessage("Dispensing...", line2.c_str());
 
-  // --- 8. Low-stock LCD warning ---
+  // --- 9. Low-stock LCD warning ---
   if (*stockPtr <= LOW_STOCK_THRESHOLD && *stockPtr > 0) {
     delay(2000);
     String lowStockLine = "Slot " + slot + ": " + String(*stockPtr) + " left";

@@ -163,6 +163,56 @@ void checkFingerprint() {
 }
 
 // ---------------------------------------------------------------
+//  verifyFingerprintForID
+//  Used by QR/web dispense to enforce a local fingerprint check
+//  before dispensing. Returns true only on matching fingerprint.
+// ---------------------------------------------------------------
+bool verifyFingerprintForID(String studentID, unsigned long timeoutMs) {
+  int expectedFingerID = getStoredFingerprintID(studentID);
+  if (expectedFingerID < 0) {
+    return false;
+  }
+
+  lcdMessage("Web verify", "Place finger");
+  unsigned long startMs = millis();
+
+  while (millis() - startMs < timeoutMs) {
+    int p = fingerprintSensor.getImage();
+    if (p == FINGERPRINT_NOFINGER) {
+      delay(25);
+      yield();
+      continue;
+    }
+    if (p != FINGERPRINT_OK) {
+      delay(25);
+      yield();
+      continue;
+    }
+
+    p = fingerprintSensor.image2Tz();
+    if (p != FINGERPRINT_OK) {
+      delay(25);
+      yield();
+      continue;
+    }
+
+    p = fingerprintSensor.fingerFastSearch();
+    if (p == FINGERPRINT_OK && fingerprintSensor.fingerID == expectedFingerID) {
+      lcdMessage("Fingerprint OK", "Dispensing...");
+      delay(500);
+      return true;
+    }
+
+    lcdMessage("No match", "Try again");
+    delay(800);
+    lcdMessage("Web verify", "Place finger");
+  }
+
+  lcdMessage("Finger timeout", "Try again");
+  return false;
+}
+
+// ---------------------------------------------------------------
 //  finishEnrollment
 //  Clean up after enrollment (success or failure)
 // ---------------------------------------------------------------
